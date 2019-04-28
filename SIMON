@@ -1,0 +1,93 @@
+#include "mbed.h"
+#include "tsi_sensor.h"
+
+enum{MUESTRA,NO_MUESTRA}
+
+/* This defines will be replaced by PinNames soon */
+#if defined (TARGET_KL25Z) || defined (TARGET_KL46Z)
+  #define ELEC0 9
+  #define ELEC1 10
+#elif defined (TARGET_KL05Z)
+  #define ELEC0 9
+  #define ELEC1 8
+#else
+  #error TARGET NOT DEFINED
+#endif
+
+DigitalOut ledR(LED1)
+DigitalOut ledG(LED2)
+DigitalOut ledB(LED3)
+
+Ticker prendeLed_ticker;
+
+int HG;
+int estadosSecuencia;
+int CT=0;
+int EP;
+int LED;
+
+void generadorSecuencia();
+void prendeLed_function();
+
+int main(void) {
+    TSIAnalogSlider tsi(ELEC0, ELEC1, 40);
+    ledR=1;
+    ledG=1;
+    ledB=1;
+    while (true) {
+        generadorSecuencia();
+    }
+    
+}
+
+void generadorSecuencia(){
+    switch(estadosSecuencia)
+    {
+        default:
+        case NO_MUESTRA:
+            LED=0;
+            EP=0;
+            if(HG==0)
+            {
+                estadosSecuencia=NO_MUESTRA;
+            }
+            else
+            {
+                CT++;
+                estadosSecuencia=MUESTRA;
+            }
+            break;
+        case MUESTRA:
+            if(EP!=CT)
+            {
+                LED=rand()%3+1;
+                prendeLed_ticker.attach(&prendeLed_function,1);
+                EP++;
+            }
+            else
+            {
+                estadosSecuencia=NO_MUESTRA;
+            }
+            break;
+    }
+}
+void prendeLed_function(){
+    if(LED==1)
+    {
+        ledR=0;
+        ledG=1;
+        ledB=1;
+    }
+    else if(LED==2)
+    {
+        ledR=1;
+        ledG=0;
+        ledB=1;
+    }
+    else if(LED==3)
+    {
+        ledR=1;
+        ledG=1;
+        ledB=0;
+    }
+}
