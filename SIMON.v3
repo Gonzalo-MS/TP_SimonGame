@@ -1,0 +1,225 @@
+#include "mbed.h"
+#include "tsi_sensor.h"
+
+enum{MUESTRA,NO_MUESTRA};
+
+/* This defines will be replaced by PinNames soon */
+#if defined (TARGET_KL25Z) || defined (TARGET_KL46Z)
+  #define ELEC0 9
+  #define ELEC1 10
+#elif defined (TARGET_KL05Z)
+  #define ELEC0 9
+  #define ELEC1 8
+#else
+  #error TARGET NOT DEFINED
+#endif
+
+DigitalOut ledR(LED1);
+DigitalOut ledG(LED2);
+DigitalOut ledB(LED3);
+
+Ticker prendeLed_ticker;
+
+int HG;
+int E1;
+int E2;
+int E3;
+int i=0;
+int i2=0;
+int i3=0;
+int i4=0;
+int a=0;
+int b=0;
+int c=0;
+int estadosSecuencia;
+int CT=0;
+int EP;
+int LED;
+
+int j;
+int x;
+
+int vecR[50];
+int vecG[50];
+int vecB[50];
+int vecE1[50];
+int vecE2[50];
+int vecE3[50];
+
+
+void generadorSecuencia();
+void prendeLed_function();
+void detectorPulsado();
+
+TSIAnalogSlider tsi(ELEC0, ELEC1, 40);
+
+int main(void) {
+    ledR=1;
+    ledG=1;
+    ledB=1;
+    for(j=0;j<50;j++){
+        vecR[j]=0;
+        vecG[j]=0;
+        vecB[j]=0;
+        vecE1[j]=0;
+        vecE2[j]=0;
+        vecE3[j]=0;
+    }
+    while (true) {
+        detectorPulsado();
+        wait(1);
+        generadorSecuencia();
+    }
+    
+}
+
+void generadorSecuencia(){
+    switch(estadosSecuencia)
+    {
+        default:
+        case NO_MUESTRA:
+            LED=0;
+            EP=0;
+            if(HG==0)
+            {
+                estadosSecuencia=NO_MUESTRA;
+            }
+            else
+            {
+                CT++;
+                estadosSecuencia=MUESTRA;
+            }
+            break;
+        case MUESTRA:
+            if(EP!=CT)
+            {
+                LED=rand()%3+1;
+                prendeLed_ticker.attach(&prendeLed_function,1);
+                EP++;
+            }
+            else
+            {
+                estadosSecuencia=NO_MUESTRA;
+            }
+            break;
+    }
+}
+void prendeLed_function(){
+    if(LED==1)
+    {
+        ledR=0;
+        ledG=1;
+        ledB=1;
+        vecR[i]=1;
+        vecG[i]=0;
+        vecB[i]=0;
+    }
+    else if(LED==2)
+    {
+        ledR=1;
+        ledG=0;
+        ledB=1;
+        vecR[i]=0;
+        vecG[i]=1;
+        vecB[i]=0;
+    }
+    else if(LED==3)
+    {
+        ledR=1;
+        ledG=1;
+        ledB=0;
+        vecR[i]=0;
+        vecG[i]=0;
+        vecB[i]=1;
+    }
+    i++;
+}
+void detectorPulsado(){
+     if(tsi.readPercentage()<0.4f && tsi.readPercentage()>0.1f && a==0)
+    {
+        E1=1;
+        a=1;
+        vecE1[i4]=1;
+        vecE2[i4]=0;
+        vecE3[i4]=0;
+        i4++;
+    }
+    else if(tsi.readPercentage()<0.4f && tsi.readPercentage()>0.1f && a==1)
+    {
+        E1=0;
+    }
+    else if(tsi.readPercentage()==0.0f && a==1)
+    {
+        E1=0;
+        a=0;
+    }
+    
+    if(tsi.readPercentage()<0.75f && tsi.readPercentage()>0.5f && b==0)
+    {
+        E2=1;
+        b=1;
+        vecE1[i4]=0;
+        vecE2[i4]=1;
+        vecE3[i4]=0;
+        i4++;
+    }
+    else if(tsi.readPercentage()<0.75f && tsi.readPercentage()>0.5f && b==1)
+    {
+        E2=0;
+    }
+    else if(tsi.readPercentage()==0.0f && b==1)
+    {
+        E2=0;
+        b=0;
+    }
+    
+    if(tsi.readPercentage()<0.97f && tsi.readPercentage()>0.8f && c==0)
+    {
+        E3=1;
+        c=1;
+        vecE1[i4]=0;
+        vecE2[i4]=0;
+        vecE3[i4]=1;
+        i4++;
+    }
+    else if(tsi.readPercentage()<0.97f && tsi.readPercentage()>0.8f && c==1)
+    {
+        E3=0;
+    }
+    else if(tsi.readPercentage()==0.0f && c==1)
+    {
+        E3=0;
+        c=0;
+    }
+    
+    if(E1!=0 || E2!=0 || E3!=0)
+    {
+        for(i2=0;i2<CT;i2++)
+        {
+            if(vecR[i2]==vecE1[i2] && vecG[i2]==vecE2[i2] && vecB[i2]==vecE3[i2])
+            {
+                i3++;   
+            }    
+        }
+    }
+    if(i3==CT)
+    {
+        HG=1;
+        for(x=0;x<50;x++){
+            vecR[x]=0;
+            vecG[x]=0;
+            vecB[x]=0;
+            vecE1[x]=0;
+            vecE2[x]=0;
+            vecE3[x]=0;
+        }
+        i=0;
+        i3=0;
+    }
+    else
+    {
+        HG=0;
+    }
+    printf("%d %d %d \n",E1,E2,E3);
+    printf("%d \n",HG);
+}
